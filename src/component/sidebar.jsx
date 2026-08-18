@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, BarChart2, Users, Package, History, HelpCircle, LogOut } from 'lucide-react';
 
-export default function Sidebar({ activePage, setActivePage }) {
+export default function Sidebar({ activePage, setActivePage, onOpenNewSale }) {
   return (
     <aside style={{ 
       width: '240px', 
@@ -21,21 +21,26 @@ export default function Sidebar({ activePage, setActivePage }) {
           </h2>
         </div>
 
-        <button style={{
-          width: '100%',
-          padding: '12px',
-          backgroundColor: '#4f46e5',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '12px',
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          cursor: 'pointer',
-          marginBottom: '20px'
-        }}>
+        {/* Tombol New Sale memanggil onOpenNewSale */}
+        <button 
+          onClick={onOpenNewSale}
+          style={{
+            width: '100%',
+            padding: '12px',
+            backgroundColor: '#4f46e5',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '12px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            marginBottom: '20px',
+            fontSize: '13px'
+          }}
+        >
           <Plus size={18} /> New Sale
         </button>
 

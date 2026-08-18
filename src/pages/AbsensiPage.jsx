@@ -1,23 +1,20 @@
 import React from 'react';
-import { Bell, User, Clock, FileText, AlertCircle } from 'lucide-react';
+import { Clock, FileText, AlertCircle } from 'lucide-react';
+import Topbar from '../component/Topbar';
 
 export default function AbsensiPage() {
   return (
-    <div style={{ flex: 1, padding: '32px', backgroundColor: '#f8fafc', overflowY: 'auto', height: '100vh' }}>
+    <div style={{ 
+      flex: 1, 
+      padding: '32px', 
+      backgroundColor: '#f8fafc', 
+      overflowY: 'auto', 
+      height: '100vh',
+      boxSizing: 'border-box'
+    }}>
       
-      {/* Topbar Info & Profile */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '500' }}>Flagship Store (Jakarta)</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Bell size={18} color="#94a3b8" style={{ cursor: 'pointer' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <User size={16} color="#64748b" />
-            </div>
-            <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>Budi Santoso</span>
-          </div>
-        </div>
-      </div>
+      {/* Topbar Standar */}
+      <Topbar />
 
       {/* Header Halaman */}
       <div style={{ marginBottom: '28px' }}>
@@ -95,13 +92,13 @@ export default function AbsensiPage() {
                   <td style={{ padding: '10px 0' }}>01/07/2026</td>
                   <td style={{ padding: '10px 0' }}>08:00:12</td>
                   <td style={{ padding: '10px 0' }}>17:05:44</td>
-                  <td style={{ padding: '10px 0', color: '#6366f1', fontWeight: '600' }}>9h 05m</td>
+                  <td style={{ padding: '10px 0', color: '#4f46e5', fontWeight: '600' }}>9h 05m</td>
                 </tr>
                 <tr style={{ borderTop: '1px solid #f8fafc', color: '#334155' }}>
                   <td style={{ padding: '10px 0' }}>30/06/2026</td>
                   <td style={{ padding: '10px 0' }}>07:55:30</td>
                   <td style={{ padding: '10px 0' }}>17:15:20</td>
-                  <td style={{ padding: '10px 0', color: '#6366f1', fontWeight: '600' }}>9h 20m</td>
+                  <td style={{ padding: '10px 0', color: '#4f46e5', fontWeight: '600' }}>9h 20m</td>
                 </tr>
               </tbody>
             </table>
@@ -114,7 +111,6 @@ export default function AbsensiPage() {
             Laporan Kas Akhir Shift
           </h3>
 
-          {/* Display Total Penjualan Sistem */}
           <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px' }}>
             <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>
               TOTAL PENJUALAN SISTEM
@@ -124,7 +120,6 @@ export default function AbsensiPage() {
             </div>
           </div>
 
-          {/* Form Input Uang Fisik */}
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px' }}>
               TOTAL UANG FISIK
@@ -139,7 +134,6 @@ export default function AbsensiPage() {
             </div>
           </div>
 
-          {/* Form Catatan Closing */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px' }}>
               CATATAN CLOSING
@@ -155,12 +149,12 @@ export default function AbsensiPage() {
                 fontSize: '13px',
                 outline: 'none',
                 resize: 'none',
-                fontFamily: 'inherit'
+                fontFamily: 'inherit',
+                boxSizing: 'border-box'
               }}
             />
           </div>
 
-          {/* Tombol Simpan & Serah Terima */}
           <button style={{
             width: '100%',
             backgroundColor: '#0f172a',
@@ -180,14 +174,12 @@ export default function AbsensiPage() {
             <FileText size={16} /> SIMPAN & SERAH TERIMA
           </button>
 
-          {/* Alert Warning Box */}
           <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-            <AlertCircle size={16} color="#64748b" style={{ shrink: 0, marginTop: '2px' }} />
-            <p style={{ margin: 0, fontSize: '11px', color: '#64748b', leading: '1.4' }}>
+            <AlertCircle size={16} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
               Pastikan jumlah uang fisik di laci sesuai dengan catatan sistem sebelum melakukan penutupan shift.
             </p>
           </div>
-
         </div>
 
       </div>
