@@ -65,7 +65,8 @@ export default function InventarisPage() {
           fontSize: '13px',
           fontWeight: '600',
           color: '#1e293b',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          boxSizing: 'border-box'
         }}>
           <AlertTriangle size={16} color="#ef4444" />
           <span>Laporkan Kerusakan Barang</span>
