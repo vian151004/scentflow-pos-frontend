@@ -1,122 +1,20 @@
 import React, { useState } from 'react';
-import { Search, ShoppingBag, Trash2, UserPlus, Banknote, QrCode, Building2, Printer } from 'lucide-react';
+import { Search, ShoppingBag, Trash2, UserPlus, Banknote, QrCode, Printer } from 'lucide-react';
 import Topbar from '../component/Topbar';
+import { FINISHED_PRODUCTS, TABS, TAX_RATE, formatRupiah } from '../data/inventoryData';
 
-const PRODUCTS = [
-  {
-    id: 1,
-    name: 'Sauvage Dior',
-    stock: 'TERSEDIA: 780 ML',
-    status: 'available',
-    pricePerUnit: 6000,
-    unitLabel: 'ML',
-    categories: ['Men'],
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 2,
-    name: 'Baccarat Rouge',
-    stock: 'HAMPIR HABIS: 15 ML',
-    status: 'warning',
-    pricePerUnit: 12500,
-    unitLabel: 'ML',
-    categories: ['Unisex', 'Exclusive'],
-    image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=500&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 3,
-    name: 'Black Opium YSL',
-    stock: 'TERSEDIA: 420 ML',
-    status: 'available',
-    pricePerUnit: 8500,
-    unitLabel: 'ML',
-    categories: ['Women'],
-    image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 4,
-    name: "J'Adore",
-    stock: 'TERSEDIA: 1.2 L',
-    status: 'available',
-    pricePerUnit: 9200,
-    unitLabel: 'ML',
-    categories: ['Women'],
-    image: 'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=500&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 5,
-    name: 'Chanel No. 5',
-    stock: 'TERSEDIA: 250 ML',
-    status: 'available',
-    pricePerUnit: 15000,
-    unitLabel: 'ML',
-    categories: ['Women', 'Exclusive'],
-    image: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=500&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 6,
-    name: 'Eros Versace',
-    stock: 'TERSEDIA: 900 ML',
-    status: 'available',
-    pricePerUnit: 7800,
-    unitLabel: 'ML',
-    categories: ['Men'],
-    image: 'https://images.unsplash.com/photo-1615397349754-cfa2066a298e?w=500&auto=format&fit=crop&q=80'
-  },
-];
-
-const TABS = ['Semua', 'Men', 'Women', 'Unisex', 'Exclusive'];
-const TAX_RATE = 0.11; // pajak statis 11%
-
-function formatRupiah(num) {
-  return 'Rp ' + Math.round(num).toLocaleString('id-ID');
-}
-
-export default function DashboardPage() {
-  const [cart, setCart] = useState([]);
+export default function DashboardPage({ cart, addToCart, increaseQty, decreaseQty, removeFromCart }) {
   const [activeCategory, setActiveCategory] = useState('Semua');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [customerName, setCustomerName] = useState('');
 
-  // ===== FILTER PRODUK =====
-  const filteredProducts =
-    activeCategory === 'Semua'
-      ? PRODUCTS
-      : PRODUCTS.filter((product) => product.categories.includes(activeCategory));
-
-  // ===== FUNGSI-FUNGSI CART =====
-
-  const addToCart = (product) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
-        // Kalau produk udah ada di cart, tinggal qty-nya ditambah
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
-        );
-      }
-      // Kalau belum ada, masukin sebagai item baru dengan qty 1
-      return [...prev, { ...product, qty: 1 }];
-    });
-  };
-
-  const increaseQty = (id) => {
-    setCart((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, qty: item.qty + 1 } : item))
+  const filteredProducts = FINISHED_PRODUCTS
+    .filter((product) =>
+      activeCategory === 'Semua' ? true : product.categories.includes(activeCategory)
+    )
+    .filter((product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  };
-
-  const decreaseQty = (id) => {
-    setCart((prev) =>
-      prev
-        .map((item) => (item.id === id ? { ...item, qty: item.qty - 1 } : item))
-        .filter((item) => item.qty > 0) // qty nyampe 0 -> otomatis hilang dari cart
-    );
-  };
-
-  const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  // ===== KALKULASI HARGA =====
 
   const subtotal = cart.reduce((sum, item) => sum + item.pricePerUnit * item.qty, 0);
   const tax = subtotal * TAX_RATE;
@@ -126,7 +24,6 @@ export default function DashboardPage() {
   return (
     <div style={{ display: 'flex', flex: 1, height: '100vh', minWidth: 0 }}>
 
-      {/* ===== KATALOG PRODUK ===== */}
       <div style={{
         flex: 1,
         padding: '32px',
@@ -142,6 +39,8 @@ export default function DashboardPage() {
           <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari varian parfum..."
             style={{
               width: '100%',
@@ -177,48 +76,52 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-          {filteredProducts.map((p) => (
-            <div
-              key={p.id}
-              onClick={() => addToCart(p)}
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: '16px',
-                padding: '12px',
-                border: '1px solid #f1f5f9',
-                cursor: 'pointer',
-                transition: 'transform 0.1s ease'
-              }}
-            >
-              <img
-                src={p.image}
-                alt={p.name}
-                style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '12px', marginBottom: '12px' }}
-              />
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{p.name}</h4>
-              <span style={{
-                fontSize: '10px',
-                fontWeight: '800',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                backgroundColor: p.status === 'warning' ? '#fff1f2' : '#ecfdf5',
-                color: p.status === 'warning' ? '#f43f5e' : '#10b981',
-                display: 'inline-block',
-                marginBottom: '10px',
-                textTransform: 'uppercase'
-              }}>
-                {p.stock}
-              </span>
-              <p style={{ margin: 0, fontWeight: '700', fontSize: '13px', color: '#0f172a' }}>
-                {formatRupiah(p.pricePerUnit)} / {p.unitLabel}
-              </p>
-            </div>
-          ))}
-        </div>
+        {filteredProducts.length === 0 ? (
+          <p style={{ fontSize: '13px', color: '#94a3b8', textAlign: 'center', padding: '40px 0' }}>
+            Tidak ada produk yang cocok.
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+            {filteredProducts.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => addToCart(p)}
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '16px',
+                  padding: '12px',
+                  border: '1px solid #f1f5f9',
+                  cursor: 'pointer'
+                }}
+              >
+                <img
+                  src={p.image}
+                  alt={p.name}
+                  style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '12px', marginBottom: '12px' }}
+                />
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{p.name}</h4>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '800',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  backgroundColor: p.status === 'warning' ? '#fff1f2' : '#ecfdf5',
+                  color: p.status === 'warning' ? '#f43f5e' : '#10b981',
+                  display: 'inline-block',
+                  marginBottom: '10px',
+                  textTransform: 'uppercase'
+                }}>
+                  {p.stock}
+                </span>
+                <p style={{ margin: 0, fontWeight: '700', fontSize: '13px', color: '#0f172a' }}>
+                  {formatRupiah(p.pricePerUnit)} / {p.unitLabel}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ===== CART ===== */}
       <div style={{
         width: '360px',
         borderLeft: '1px solid #e2e8f0',
@@ -242,10 +145,10 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {cart.length === 0 ? (
               <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>
-                Cart masih kosong. Klik produk di katalog untuk menambahkan.
+                Cart masih kosong. Klik produk di katalog, atau pakai "New Sale" untuk racikan custom.
               </p>
             ) : (
               cart.map((item) => (
@@ -259,14 +162,30 @@ export default function DashboardPage() {
               ))
             )}
           </div>
-
-          <div style={{ border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '16px', textAlign: 'center', cursor: 'pointer' }}>
-            <UserPlus size={20} color="#94a3b8" style={{ marginBottom: '4px' }} />
-            <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Assign Customer</p>
-          </div>
         </div>
 
         <div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>
+              <UserPlus size={14} color="#94a3b8" /> Nama Customer
+            </label>
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Masukkan nama customer..."
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                outline: 'none',
+                fontSize: '13px',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
           <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Subtotal</span>
@@ -285,10 +204,9 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '16px' }}>
             <PaymentBtn icon={<Banknote size={16} />} label="CASH" active />
             <PaymentBtn icon={<QrCode size={16} />} label="QRIS" />
-            <PaymentBtn icon={<Building2 size={16} />} label="TRANSFER" />
           </div>
 
           <button
@@ -334,7 +252,7 @@ function CartItem({ item, onIncrease, onDecrease, onRemove }) {
           <Trash2 size={14} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={onRemove} />
         </div>
         <p style={{ margin: '2px 0 8px 0', fontSize: '11px', color: '#94a3b8' }}>
-          {formatRupiah(item.pricePerUnit)} / {item.unitLabel}
+          {formatRupiah(item.pricePerUnit)} {item.isCustom ? '' : `/ ${item.unitLabel}`}
         </p>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '2px 6px' }}>

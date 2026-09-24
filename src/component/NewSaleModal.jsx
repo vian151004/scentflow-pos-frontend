@@ -1,12 +1,34 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Plus } from 'lucide-react';
+import { RAW_MATERIALS, BOTTLE_SIZES, RATIO_OPTIONS, formatRupiah } from '../data/inventoryData';
 
-export default function NewSaleModal({ isOpen, onClose }) {
-  const [selectedPerfume, setSelectedPerfume] = useState('Sauvage Dior');
+export default function NewSaleModal({ isOpen, onClose, addToCart }) {
+  const [selectedPerfumeId, setSelectedPerfumeId] = useState(RAW_MATERIALS[0].id);
   const [bottleSize, setBottleSize] = useState('50ml');
-  const [ratio, setRatio] = useState('Premium 2:1');
+  const [ratioLabel, setRatioLabel] = useState('Premium 2:1');
 
   if (!isOpen) return null;
+
+  const selectedPerfume = RAW_MATERIALS.find((m) => m.id === selectedPerfumeId);
+  const selectedRatio = RATIO_OPTIONS.find((r) => r.label === ratioLabel);
+  const mlAmount = parseInt(bottleSize, 10);
+
+  const calculatedPrice = selectedPerfume.pricePerMl * mlAmount * selectedRatio.multiplier;
+
+  const handleSubmit = () => {
+    const customItem = {
+      id: `custom-${Date.now()}`,
+      name: selectedPerfume.name,
+      pricePerUnit: calculatedPrice,
+      unitLabel: 'pcs',
+      image: null,
+      isCustom: true,
+      customDetail: `${bottleSize} - ${ratioLabel}`,
+      qty: 1,
+    };
+    addToCart(customItem);
+    onClose();
+  };
 
   return (
     <div style={{
@@ -28,7 +50,6 @@ export default function NewSaleModal({ isOpen, onClose }) {
         border: '1px solid #e2e8f0',
         boxSizing: 'border-box'
       }}>
-        {/* Modal Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ padding: '6px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex' }}>
@@ -43,33 +64,31 @@ export default function NewSaleModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Form Racikan */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-          
-          {/* Pilih Bibit */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}>
+
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>
               PILIH BIBIT UTAMA
             </label>
-            <select 
-              value={selectedPerfume} 
-              onChange={(e) => setSelectedPerfume(e.target.value)}
+            <select
+              value={selectedPerfumeId}
+              onChange={(e) => setSelectedPerfumeId(e.target.value)}
               style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none', backgroundColor: '#fff', boxSizing: 'border-box' }}
             >
-              <option value="Sauvage Dior">Sauvage Dior (Rp 6.000 / ml)</option>
-              <option value="Baccarat Rouge">Baccarat Rouge (Rp 12.500 / ml)</option>
-              <option value="Black Opium YSL">Black Opium YSL (Rp 8.500 / ml)</option>
-              <option value="Santal 33">Santal 33 (Rp 10.000 / ml)</option>
+              {RAW_MATERIALS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({formatRupiah(m.pricePerMl)} / ml) — stok {m.stockMl}ml
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Pilih Ukuran Botol */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>
               UKURAN BOTOL
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              {['30ml', '50ml', '100ml'].map(size => (
+              {BOTTLE_SIZES.map((size) => (
                 <button
                   key={size}
                   type="button"
@@ -91,29 +110,28 @@ export default function NewSaleModal({ isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Rasio Campuran */}
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>
               KONSENTRASI RACIKAN
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-              {['Standard 1:1', 'Premium 2:1'].map(r => (
+              {RATIO_OPTIONS.map((r) => (
                 <button
-                  key={r}
+                  key={r.label}
                   type="button"
-                  onClick={() => setRatio(r)}
+                  onClick={() => setRatioLabel(r.label)}
                   style={{
                     padding: '8px',
                     borderRadius: '8px',
-                    border: ratio === r ? '1.5px solid #4f46e5' : '1px solid #e2e8f0',
-                    backgroundColor: ratio === r ? '#eef2ff' : '#fff',
-                    color: ratio === r ? '#4f46e5' : '#475569',
+                    border: ratioLabel === r.label ? '1.5px solid #4f46e5' : '1px solid #e2e8f0',
+                    backgroundColor: ratioLabel === r.label ? '#eef2ff' : '#fff',
+                    color: ratioLabel === r.label ? '#4f46e5' : '#475569',
                     fontSize: '12px',
                     fontWeight: '700',
                     cursor: 'pointer'
                   }}
                 >
-                  {r}
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -121,9 +139,21 @@ export default function NewSaleModal({ isOpen, onClose }) {
 
         </div>
 
-        {/* Modal Actions */}
+        <div style={{
+          backgroundColor: '#f8fafc',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Estimasi Harga</span>
+          <span style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{formatRupiah(calculatedPrice)}</span>
+        </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
+          <button
             onClick={onClose}
             style={{
               flex: 1,
@@ -139,11 +169,8 @@ export default function NewSaleModal({ isOpen, onClose }) {
           >
             Batal
           </button>
-          <button 
-            onClick={() => {
-              // Menutup modal setelah klik submit
-              onClose();
-            }}
+          <button
+            onClick={handleSubmit}
             style={{
               flex: 2,
               padding: '12px',
