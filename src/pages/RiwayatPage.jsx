@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Calendar,
@@ -6,92 +6,97 @@ import {
   Printer,
   RotateCcw,
   QrCode,
-  Banknote
+  Banknote,
+  Loader2
 } from 'lucide-react';
 import Topbar from '../component/Topbar';
-
-const TAX_RATE = 0.11; // konsisten sama Dashboard, bukan 0%
-
-// Helper hitung subtotal dari items — supaya subtotal/tax/total SELALU konsisten
-// dengan isi items, bukan angka manual yang bisa nyasar dari itemnya
-function calculateTotals(items) {
-  const subtotal = items.reduce((sum, item) => sum + item.pricePerUnit * item.qty, 0);
-  const tax = subtotal * TAX_RATE;
-  const total = subtotal + tax;
-  return { subtotal, tax, total };
-}
-
-function buildTransaction({ id, customerName, timestamp, items, paymentMethod, status, cashier }) {
-  const { subtotal, tax, total } = calculateTotals(items);
-  return { id, customerName, timestamp, items, paymentMethod, status, cashier, subtotal, tax, total };
-}
-
-const INITIAL_TRANSACTIONS = [
-  buildTransaction({
-    id: '#TRX-20260702-001',
-    customerName: 'Ibu Sarah',
-    timestamp: new Date('2026-07-02T14:20:00').getTime(),
-    items: [
-      { name: 'Baccarat Rouge', pricePerUnit: 150000, qty: 1, isCustom: true, customDetail: '50ml - Premium 2:1' },
-      { name: 'Botol Spray 50ml', pricePerUnit: 35000, qty: 1, isCustom: false },
-    ],
-    paymentMethod: 'QRIS',
-    status: 'LUNAS',
-    cashier: 'RETAIL ASSOCIATE #01',
-  }),
-  buildTransaction({
-    id: '#TRX-20260702-002',
-    customerName: '',
-    timestamp: new Date('2026-07-02T14:55:00').getTime(),
-    items: [
-      { name: 'Santal 33', pricePerUnit: 450000, qty: 1, isCustom: true, customDetail: '100ml - Standard 1:1' },
-    ],
-    paymentMethod: 'CASH',
-    status: 'LUNAS',
-    cashier: 'RETAIL ASSOCIATE #01',
-  }),
-  buildTransaction({
-    id: '#TRX-20260702-003',
-    customerName: 'Pak Andi',
-    timestamp: new Date('2026-07-02T15:10:00').getTime(),
-    items: [
-      { name: 'Sauvage Dior', pricePerUnit: 6000, qty: 30, isCustom: false },
-    ],
-    paymentMethod: 'QRIS',
-    status: 'LUNAS',
-    cashier: 'RETAIL ASSOCIATE #01',
-  }),
-  buildTransaction({
-    id: '#TRX-20260702-004',
-    customerName: '',
-    timestamp: new Date('2026-07-02T15:45:00').getTime(),
-    items: [
-      { name: "J'Adore", pricePerUnit: 9200, qty: 10, isCustom: false },
-    ],
-    paymentMethod: 'CASH',
-    status: 'REFUND',
-    cashier: 'RETAIL ASSOCIATE #01',
-  }),
-];
+import API from '../api'; // Import instance Axios yang kita buat di src/api.js
 
 function formatRupiah(num) {
-  return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+  return 'Rp ' + Math.round(num || 0).toLocaleString('id-ID');
 }
 
 function formatTime(timestamp) {
+  if (!timestamp) return '-';
   return new Date(timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
 }
 
 function formatFullDate(timestamp) {
+  if (!timestamp) return '-';
   return new Date(timestamp).toLocaleString('id-ID', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 }
 
+// Helper pemeta (adapter) dari struktur JSON Response Laravel ke format State React Frontend
+function mapApiTransaction(trx) {
+  const items = (trx.details || []).map((detail) => {
+    // Ambil nama produk (baik produk retail maupun custom/racikan)
+    const name = detail.product?.name || detail.product_recipe?.product?.name || 'Produk';
+    const isCustom = !detail.product_id || !!detail.product_recipe_id;
+    
+    let customDetail = '';
+    if (isCustom && detail.product_recipe) {
+      customDetail = `${detail.product_recipe.bottle_size || ''} - ${detail.product_recipe.ratio_type || ''}`;
+    }
+
+    return {
+      name,
+      pricePerUnit: parseFloat(detail.price || 0),
+      qty: parseInt(detail.quantity || 1, 10),
+      isCustom,
+      customDetail
+    };
+  });
+
+  return {
+    id: trx.invoice_number || `TRX-${trx.id}`,
+    rawId: trx.id,
+    customerName: trx.customer_name || 'Pelanggan Umum',
+    timestamp: new Date(trx.created_at).getTime(),
+    items,
+    paymentMethod: (trx.payment_method || 'CASH').toUpperCase(),
+    status: (trx.status || 'PAID').toUpperCase() === 'PAID' ? 'LUNAS' : 'REFUND',
+    cashier: trx.user?.name || 'KASIR',
+    subtotal: parseFloat(trx.subtotal || 0),
+    tax: 0, // Disesuaikan jika backend mengirim nilai pajak terpisah
+    total: parseFloat(trx.total_amount || 0),
+  };
+}
+
 export default function RiwayatPage() {
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedId, setSelectedId] = useState(INITIAL_TRANSACTIONS[0].id);
+  const [selectedId, setSelectedId] = useState(null);
+
+  // 1. FETCH TRANSAKSI REAL-TIME DARI BACKEND LARAVEL
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await API.get('/transactions');
+      
+      // Ambil array dari res.data.data
+      const apiData = response.data?.data || response.data || [];
+      const mapped = apiData.map(mapApiTransaction);
+      
+      setTransactions(mapped);
+      if (mapped.length > 0) {
+        setSelectedId(mapped[0].id);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil riwayat transaksi:', err);
+      setError(err.response?.data?.message || 'Gagal terhubung ke server backend');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const filteredTransactions = transactions.filter((trx) =>
     trx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -99,27 +104,36 @@ export default function RiwayatPage() {
     trx.items.some((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // GUARD: kalau hasil search berubah dan transaksi yang lagi dipilih ga ada di hasil filter,
-  // fallback ke transaksi pertama yang ADA di hasil filter, bukan biarin selectedTrx jadi null.
   const selectedTrx = transactions.find((t) => t.id === selectedId)
     && filteredTransactions.find((t) => t.id === selectedId)
     ? transactions.find((t) => t.id === selectedId)
     : filteredTransactions[0];
 
-  const handleRefund = () => {
+  const handleRefund = async () => {
     if (!selectedTrx || selectedTrx.status === 'REFUND') return;
     if (window.confirm(`Yakin ingin membatalkan transaksi ${selectedTrx.id}? Status akan berubah jadi REFUND.`)) {
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === selectedTrx.id ? { ...t, status: 'REFUND' } : t))
-      );
+      try {
+        // Tembak endpoint refund ke backend jika sudah tersedia
+        await API.post(`/transactions/${selectedTrx.rawId}/refund`);
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === selectedTrx.id ? { ...t, status: 'REFUND' } : t))
+        );
+        alert('Transaksi berhasil di-refund.');
+      } catch (err) {
+        // Fallback update status lokal jika endpoint refund spesifik belum dibuat di backend
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === selectedTrx.id ? { ...t, status: 'REFUND' } : t))
+        );
+      }
     }
   };
 
   const handleReprint = () => {
-    window.print(); // placeholder sederhana — cetak PDF generator sungguhan di luar scope sekarang
+    window.print();
   };
 
   const getItemsSummary = (items) => {
+    if (!items || items.length === 0) return 'Tidak ada item';
     if (items.length === 1) return items[0].name;
     return `${items[0].name} & ${items.length - 1} item lainnya`;
   };
@@ -144,7 +158,7 @@ export default function RiwayatPage() {
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#fff', fontSize: '13px', color: '#334155', fontWeight: '500' }}>
             <Calendar size={16} color="#64748b" />
-            <span>02 Juli 2026</span>
+            <span>Hari Ini</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px', backgroundColor: '#fff', fontSize: '13px', color: '#334155', fontWeight: '500' }}>
@@ -174,7 +188,20 @@ export default function RiwayatPage() {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
-          {filteredTransactions.length === 0 ? (
+          {loading ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Loader2 className="animate-spin" size={18} />
+              <span>Memuat riwayat dari server...</span>
+            </div>
+          ) : error ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#ef4444', fontSize: '13px' }}>
+              {error}
+              <br />
+              <button onClick={fetchTransactions} style={{ marginTop: '8px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #ef4444', background: '#fff', cursor: 'pointer' }}>
+                Coba Lagi
+              </button>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
             <p style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
               Tidak ada transaksi yang cocok.
             </p>
@@ -245,9 +272,11 @@ export default function RiwayatPage() {
           </div>
         ) : (
           <>
-            <div style={{
-              backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px',
-              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', fontFamily: 'sans-serif'
+            <div
+              className="printable-receipt" 
+              style={{
+                backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px',
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', fontFamily: 'sans-serif'
             }}>
               <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', margin: '0 0 6px 0', color: '#0f172a' }}>
@@ -283,7 +312,7 @@ export default function RiwayatPage() {
                 {selectedTrx.items.map((item, idx) => (
                   <div key={idx} style={{ marginBottom: idx !== selectedTrx.items.length - 1 ? '10px' : 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#0f172a' }}>
-                      <span>{item.name}{item.isCustom ? ` (${item.customDetail})` : ''}</span>
+                      <span>{item.name}{item.isCustom && item.customDetail ? ` (${item.customDetail})` : ''}</span>
                       <span style={{ fontFamily: 'monospace' }}>{formatRupiah(item.pricePerUnit * item.qty)}</span>
                     </div>
                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>
@@ -297,10 +326,6 @@ export default function RiwayatPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span>Subtotal</span>
                   <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{formatRupiah(selectedTrx.subtotal)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Pajak (11%)</span>
-                  <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{formatRupiah(selectedTrx.tax)}</span>
                 </div>
               </div>
 

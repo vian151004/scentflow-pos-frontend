@@ -12,3 +12,42 @@ html, body, #root {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: #f8fafc;
 }
+
+/* ===================================================
+   CSS KHUSUS MODE CETAK (PRINTER STRUK KASIR)
+   =================================================== */
+@media print {
+  /* Hilangkan header & footer bawaan browser (seperti URL, tanggal, judul) */
+  @page {
+    size: 80mm 150mm;
+    margin: 0mm;
+  }
+
+  /* Sembunyikan elemen aplikasi */
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  /* Tampilkan hanya struk */
+  .printable-receipt, .printable-receipt * {
+    visibility: visible;
+  }
+
+  .printable-receipt {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    padding: 12px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #fff !important;
+  }
+}
